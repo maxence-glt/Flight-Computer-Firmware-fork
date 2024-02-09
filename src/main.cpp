@@ -18,6 +18,7 @@
 //testing 123
 //123 45
 //2323
+// o2i1u3o123u1298u3
 
 #if defined (USBCON) && defined(USBD_USE_CDC)
 #include "USBSerial.h"
