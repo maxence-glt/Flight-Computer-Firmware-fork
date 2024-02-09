@@ -3,6 +3,7 @@
 #include "util.hpp"
 
 #include <Arduino.h>
+#include <Wire.h>
 #include <SPI.h>
 
 /*
