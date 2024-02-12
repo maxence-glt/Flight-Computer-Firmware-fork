@@ -1,7 +1,7 @@
 
 // we want to isolate parts of the driver (see discord) that are relevant to the functions of our LTC 2990.
 
-// Board purposes: 
+// Board purposes: Measure the various voltages and currents used by the avionics bay in our rocket.
 
 // Reduntant parts of our template driver:
 
