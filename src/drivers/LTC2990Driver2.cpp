@@ -7,4 +7,7 @@
 
 // usable parts of our template driver:
 
+#include "iostream"
+#include "arduino.h"
+
 // testing
