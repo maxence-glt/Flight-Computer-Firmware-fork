@@ -9,5 +9,7 @@
 
 #include "iostream"
 #include "arduino.h"
+#include "LTC2990.hpp"
+
 
 // testing
