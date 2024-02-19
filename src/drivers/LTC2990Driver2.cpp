@@ -11,4 +11,13 @@
 #include "Arduino.h"
 #include "Wire.h"
 #include "LTC2990.hpp"
+#include "cstdint"
+#include "LT_I2C"
+#include "Linduino.h"
+
+
+
+
+
+
 
