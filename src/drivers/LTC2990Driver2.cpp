@@ -84,12 +84,11 @@ int8_t LTC2990_adc_read_new_data(uint8_t i2c_address, uint8_t msb_register_addre
 
 // Reads an 8-bit register from the LTC2990 using the standard repeated start format.
 
-int8_t LTC2990_register_read(uint8_t i2c_address, uint8_t register_address, uint8_t *register_data)
-{
+int8_t LTC2990_register_read(uint8_t i2c_address, uint8_t register_address, uint8_t *register_data) {
     int8_t ack = 0;
 
     ack = i2c_read_byte_data(i2c_address, register_address, register_data);
-    return(ack);
+    return (ack);
 }
 
 
