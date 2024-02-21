@@ -12,8 +12,61 @@
 #include "Wire.h"
 #include "LTC2990.hpp"
 #include "cstdint"
-#include "LT_I2C.h"
-#include "Linduino.h"
+
+bool _initialized {false};
+
+
+void LTC2990_begin() {
+    Serial.begin(9600);
+    Serial.println("Init");
+
+    Wire.begin();
+    _initialized = true;
+
+    // add error block that checks if Init failed, set _initialized to false
+}
+
+uint8_t
+
+
+
+//// i2c master functions
+//void i2c_master_setup(int master_address) {
+//    Wire.begin(master_address);
+//
+//}
+//
+//void LTC_Begin_Master_Transmission(int address) {
+//    Wire.beginTransmission(address);
+//}
+//
+//void LTC_End_Master_Transmission(int address) {
+//    Wire.endTransmission(address);
+//}
+//
+//template<typename T>
+//void LTC_Master_Write(T data) {
+//    Wire.write(data);
+//}
+//
+//
+//
+//
+//// LTC receiver functions
+//void LTC_setup(int LTC_address) {
+//    Wire.begin(LTC_address);
+//
+//}
+//
+//void LTC_read() {
+//    Wire.onReceive(receiveEventHelper);
+//}
+//
+//void LTC_End_Master_Transmission(int address) {
+//    Wire.endTransmission(address);
+//}
+
+void receiveEventHelper()
 
 /* Reads a 14-bit adc_code from LTC2990.
 int8_t i2c_read_word_data(uint8_t address, uint8_t address1, uint16_t *pInt);
