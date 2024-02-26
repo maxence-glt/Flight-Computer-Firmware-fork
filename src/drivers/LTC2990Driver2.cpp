@@ -12,94 +12,172 @@
 #include "Wire.h"
 #include "LTC2990.hpp"
 #include "cstdint"
-#include "LT_I2C.h"
-#include "Linduino.h"
 
-/* Reads a 14-bit adc_code from LTC2990.
-int8_t i2c_read_word_data(uint8_t address, uint8_t address1, uint16_t *pInt);
+bool _initialized {false};
+uint8_t _addr;
+uint8_t _mode;
+uint32_t _lastErrorCode;
 
-int8_t LTC2990_adc_read(uint8_t i2c_address, uint8_t msb_register_address, int16_t *adc_code, int8_t *data_valid)
-{
-    int8_t ack = 0;
-    uint16_t code;
-    ack = i2c_read_word_data(i2c_address, msb_register_address, &code);
 
-    *data_valid = (code >> 15) & 0x01;   // Place Data Valid Bit in *data_valid
 
-    *adc_code = code & 0x7FFF;  // Removes data valid bit to return proper adc_code value
-
-    return(ack);
+uint8_t LTC2990_setMode(uint8_t tempFormatIsCelsius = 0, uint8_t single = 0, uint8_t limit = LTC2990_MEASURE_ALL, uint8_t measureMode = LTC2990_MEASURE_MODE_V1_V2_V3_V4) {
+    return measureMode + (limit<<3) + (single<<LTC2990_REPEAT_BIT) + (tempFormatIsCelsius<<LTC2990_TEMPFORMAT_BIT);
 }
-*/
 
-// Reads a 14-bit adc_code from the LTC2990 but enforces a maximum timeout.
-// Similar to LTC2990_adc_read except it repeats until the data_valid bit is set, it fails to receive an I2C acknowledge, or the timeout (in milliseconds)
-// expires. It keeps trying to read from the LTC2990 every millisecond until the data_valid bit is set (indicating new data since the previous
-// time this register was read) or until it fails to receive an I2C acknowledge (indicating an error on the I2C bus).
+void LTC2990_config(uint8_t address, uint8_t tempFormatIsCelsius, uint8_t single, uint8_t limit, uint8_t measureMode) {
+    _initialized = false;
+    _addr = address;
+    _mode = LTC2990_setMode(tempFormatIsCelsius, single, limit, measureMode);
+}
 
-int8_t LTC2990_adc_read_timeout(uint8_t i2c_address, uint8_t msb_register_address, int16_t *adc_code, int8_t *data_valid, uint16_t timeout, uint8_t status_bit)
-{
-    int8_t ack = 0;
-    uint8_t reg_data;
-    uint16_t timer_count;  // Timer count for data_valid
-    *data_valid = 0;
+void LTC2990_begin() {
+    Wire.begin();
+    _initialized = true;
 
-    for (timer_count = 0; timer_count < timeout; timer_count++)
-    {
+    // add error block that checks if Init failed, set _initialized to false
+}
 
-        ack |=  LTC2990_register_read(i2c_address, LTC2990_STATUS_REG, &reg_data); //! 1)Read status register until correct data valid bit is set
+uint8_t LTC2990_writeRegister(uint8_t r, uint8_t val) {
+    noInterrupts();
+    Wire.beginTransmission(_addr);
+    Wire.write(r);
+    Wire.write(val);
+    uint8_t status = Wire.endTransmission(true);
+    if (status != 0) {
+        _lastErrorCode = LTC2990_ERROR_WRITE;
+    } else {
+        _lastErrorCode = LTC2990_SUCCESS;
+    }
+    delayMicroseconds(200); //TODO: remove / work around
+    interrupts();
+#ifdef LTC2990_DEBUG
+    Serial.println(status);
+#endif
+    return status;
+}
 
-        if ((ack) || (((reg_data>>status_bit)&0x1)==1))
-        {
-            break;
+uint8_t LTC2990_readRegister(uint8_t r) {
+    noInterrupts();
+    Wire.beginTransmission(_addr);
+    Wire.write(r);
+    uint8_t status = Wire.endTransmission(true);
+    delayMicroseconds(200);
+    if(status == 0) {
+        if (Wire.requestFrom((int)_addr, 1, 1) == 1) {
+            uint8_t result = Wire.read();
+            interrupts();
+            _lastErrorCode = LTC2990_SUCCESS;
+            return result;
+        } else {
+            _lastErrorCode = LTC2990_ERROR_READ;
         }
-        delay(1);
+    } else {
+        _lastErrorCode = LTC2990_ERROR_WRITE;
     }
-    ack |= LTC2990_adc_read(i2c_address, msb_register_address, &(*adc_code), &(*data_valid));   //! 2) It's either valid or it's timed out, we read anyways
-    if (*data_valid  !=1)
-    {
-        return (1);
+    interrupts();
+    return 0;
+}
+
+uint32_t LTC2990_getLastErrorCode() {
+    return _lastErrorCode;
+}
+
+uint32_t LTC2990_readVoltage(uint8_t m_register, bool differential_toggle) {
+    uint8_t m = LTC2990_readRegister(m_register);
+    uint8_t l = 0;
+    uint8_t m_error = _lastErrorCode;
+    uint8_t l_error = LTC2990_SUCCESS;
+
+#ifndef LTC2990_LOW_PRECISION
+    l = LTC2990_readRegister(m_register + 1);
+    l_error = _lastErrorCode;
+#endif
+
+    if((m&0x80) == 0 || m == 0) {
+        if(m!=0) {
+            _lastErrorCode = LTC2990_ERROR_NOT_READY; //No new value is available at this point
+        }
+        return 0;
     }
-    return(ack);
+    if(l_error != LTC2990_SUCCESS) {
+        _lastErrorCode = l_error;
+        return 0;
+    }
+    if((m&0x40) == 0x40) {
+        _lastErrorCode = LTC2990_ERROR_NEGATIVE;
+        return 0; //negative
+    }
+    m &= 0x3F;
+    _lastErrorCode = LTC2990_SUCCESS;
+    if (differential_toggle)
+        return ((m<<8)+l) / 1000.0 * LTC2990_VOLTAGE_DIFFERENTIAL_COEF;
+    return ((m<<8)+l) / 1000.0 * LTC2990_VOLTAGE_SINGLE_END_COEF;
 }
 
-// Reads new data (even after a mode change) by flushing old data and waiting for the data_valid bit to be set.
-// This function simplifies adc reads when modes are changing.  For example, if V1-V2 changes from temperature mode
-// to differential voltage mode, the data in the register may still correspond to the temperature reading immediately
-// after the mode change.  Flushing one reading and waiting for a new reading guarantees fresh data is received.
-// If the timeout is reached without valid data (*data_valid=1) the function exits.
+uint32_t LTC2990_readTemperature(uint8_t m_register) {
+    uint8_t m = LTC2990_readRegister(m_register);
+    uint8_t l = 0;
+    uint8_t m_error = _lastErrorCode;
+    uint8_t l_error = LTC2990_SUCCESS;
 
-int8_t LTC2990_adc_read_new_data(uint8_t i2c_address, uint8_t msb_register_address, int16_t *adc_code, int8_t *data_valid, uint16_t timeout)
+#ifndef LTC2990_LOW_PRECISION
+    l = LTC2990_readRegister(m_register + 1);
+    l_error = _lastErrorCode;
+#endif
 
-{
-    int8_t ack = 0;
-    uint8_t status_bit;
-    status_bit  = msb_register_address/2-1;
-    ack |= LTC2990_adc_read_timeout(i2c_address, msb_register_address, adc_code, data_valid, timeout, status_bit); //! 1)  Throw away old data
-
-    ack |= LTC2990_adc_read_timeout(i2c_address, msb_register_address, adc_code, data_valid, timeout,status_bit); //! 2) Read new data
-
-    return(ack);
+    if((m&0x80) == 0 || m == 0) {
+        if(m!=0) {
+            _lastErrorCode = LTC2990_ERROR_NOT_READY; //No new value is available at this point
+        }
+        return 0;
+    }
+    if(l_error != LTC2990_SUCCESS) {
+        _lastErrorCode = l_error;
+        return 0;
+    }
+    m &= 0x1F;
+    _lastErrorCode = LTC2990_SUCCESS;
+    return ((m<<8) + l) * LTC2990_TEMP_COEF;
 }
 
-// Reads an 8-bit register from the LTC2990 using the standard repeated start format.
-
-int8_t LTC2990_register_read(uint8_t i2c_address, uint8_t register_address, uint8_t *register_data) {
-    int8_t ack = 0;
-
-    ack = i2c_read_byte_data(i2c_address, register_address, register_data);
-    return (ack);
+uint32_t LTC2990_readV1() {
+    return LTC2990_readVoltage(LTC2990_REGISTER_V1_M, false);
 }
 
+uint32_t LTC2990_readV2() {
+    return LTC2990_readVoltage(LTC2990_REGISTER_V2_M, false);
+}
 
+uint32_t LTC2990_readV3() {
+    return LTC2990_readVoltage(LTC2990_REGISTER_V3_M, false);
+}
 
+uint32_t LTC2990_readV4() {
+    return LTC2990_readVoltage(LTC2990_REGISTER_V4_M, false);
+}
 
+uint32_t LTC2990_readVCC() {
+    uint32_t v = LTC2990_readVoltage(LTC2990_REGISTER_VCC_M, false);
+    if(v!=0) {
+        return v+2500;
+    }
+    return 0;
+}
 
+uint32_t LTC2990_readV1V2() {
+    return LTC2990_readVoltage(LTC2990_REGISTER_V1_M, true);
+}
 
+uint32_t LTC2990_readV3V4() {
+    return LTC2990_readVoltage(LTC2990_REGISTER_V3_M, true);
+}
 
-
-
-
-
-
-
+uint32_t LTC2990::readTR1() {
+    return readTemperature(LTC2990_REGISTER_V1_M);
+}
+uint32_t LTC2990::readTR2() {
+    return readTemperature(LTC2990_REGISTER_V3_M);
+}
+uint32_t LTC2990::readTINT() {
+    return readTemperature(LTC2990_REGISTER_TINT_M);
+}
