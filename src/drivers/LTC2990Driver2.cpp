@@ -23,6 +23,7 @@ const uint8_t LTC2990_1_ADDR = 0x98;
 const uint8_t LTC2990_2_ADDR = 0x9A;
 
 //Sets Address names for easy access later on. A1 is for voltage measure, A2 is for current sense.
+
 }
 
 
