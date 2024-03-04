@@ -18,6 +18,12 @@ uint8_t _addr;
 uint8_t _mode;
 uint32_t _lastErrorCode;
 
+{
+const uint8_t LTC2990_1_ADDR = 0x98;
+const uint8_t LTC2990_2_ADDR = 0x9A;
+
+//Sets Address names for easy access later on. A1 is for voltage measure, A2 is for current sense.
+}
 
 
 uint8_t LTC2990_setMode(uint8_t tempFormatIsCelsius = 0, uint8_t single = 0, uint8_t limit = LTC2990_MEASURE_ALL, uint8_t measureMode = LTC2990_MEASURE_MODE_V1_V2_V3_V4) {
@@ -171,7 +177,8 @@ uint32_t LTC2990_readV1V2() {
 uint32_t LTC2990_readV3V4() {
     return LTC2990_readVoltage(LTC2990_REGISTER_V3_M, true);
 }
-
+//May use temperature function
+/*
 uint32_t LTC2990::readTR1() {
     return readTemperature(LTC2990_REGISTER_V1_M);
 }
@@ -181,3 +188,4 @@ uint32_t LTC2990::readTR2() {
 uint32_t LTC2990::readTINT() {
     return readTemperature(LTC2990_REGISTER_TINT_M);
 }
+ */
