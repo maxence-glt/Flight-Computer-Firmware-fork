@@ -177,8 +177,7 @@ uint32_t LTC2990_readV1V2() {
 uint32_t LTC2990_readV3V4() {
     return LTC2990_readVoltage(LTC2990_REGISTER_V3_M, true);
 }
-//May use temperature function
-/*
+//Use temperature function
 uint32_t LTC2990::readTR1() {
     return readTemperature(LTC2990_REGISTER_V1_M);
 }
@@ -188,4 +187,3 @@ uint32_t LTC2990::readTR2() {
 uint32_t LTC2990::readTINT() {
     return readTemperature(LTC2990_REGISTER_TINT_M);
 }
- */
