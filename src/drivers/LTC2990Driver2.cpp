@@ -25,14 +25,16 @@ const uint8_t LTC2990_2_ADDR = 0x9A;
 //Sets Address names for easy access later on. A1 is for voltage measure, A2 is for current sense.
 }
 
+void transmission()
+    wire.beginTrans(LTC2990_1_ADDR)
 
 uint8_t LTC2990_setMode(uint8_t tempFormatIsCelsius = 0, uint8_t single = 0, uint8_t limit = LTC2990_MEASURE_ALL, uint8_t measureMode = LTC2990_MEASURE_MODE_V1_V2_V3_V4) {
     return measureMode + (limit<<3) + (single<<LTC2990_REPEAT_BIT) + (tempFormatIsCelsius<<LTC2990_TEMPFORMAT_BIT);
 }
 
-void LTC2990_config(uint8_t address, uint8_t tempFormatIsCelsius, uint8_t single, uint8_t limit, uint8_t measureMode) {
+void LTC2990_config(uint8_t LTC2990_1_ADDR, uint8_t tempFormatIsCelsius, uint8_t single, uint8_t limit, uint8_t measureMode) {
     _initialized = false;
-    _addr = address;
+    _addr = LTC2990_1_ADDR;
     _mode = LTC2990_setMode(tempFormatIsCelsius, single, limit, measureMode);
 }
 
