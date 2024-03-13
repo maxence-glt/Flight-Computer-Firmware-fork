@@ -26,7 +26,7 @@ const uint8_t LTC2990_2_ADDR = 0x9A;
 }
 
 void transmission()
-    wire.beginTrans(LTC2990_1_ADDR)
+    wire.beginTrans(LTC2990_1_ADDR);
 
 uint8_t LTC2990_setMode(uint8_t tempFormatIsCelsius = 0, uint8_t single = 0, uint8_t limit = LTC2990_MEASURE_ALL, uint8_t measureMode = LTC2990_MEASURE_MODE_V1_V2_V3_V4) {
     return measureMode + (limit<<3) + (single<<LTC2990_REPEAT_BIT) + (tempFormatIsCelsius<<LTC2990_TEMPFORMAT_BIT);
@@ -189,3 +189,15 @@ uint32_t LTC2990::readTR2() {
 uint32_t LTC2990::readTINT() {
     return readTemperature(LTC2990_REGISTER_TINT_M);
 }
+
+Wire.endTransmission();
+
+}
+
+void()
+    wire.beginTrans(LTC2990_2_ADDR);
+
+//Bring down initialization from first chip for this chip
+
+
+
