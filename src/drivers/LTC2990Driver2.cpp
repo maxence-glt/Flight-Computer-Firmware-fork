@@ -140,6 +140,32 @@ uint32_t LTC2990_readTemperature(uint8_t m_register) {
     return ((m<<8) + l) * LTC2990_TEMP_COEF;
 }
 
+uint32_t LTC2990_readCurrent(uint8_t m_register) {
+    uint8_t m = LTC2990_readRegister(m_register);
+    uint8_t l = 0;
+    uint8_t m_error = _lastErrorCode;
+    uint8_t l_error = LTC2990_SUCCESS;
+
+#ifndef LTC2990_LOW_PRECISION
+    l = LTC2990_readRegister(m_register + 1);
+    l_error = _lastErrorCode;
+#endif
+
+    if((m&0x80) == 0 || m == 0) {z
+        if(m!=0) {
+            _lastErrorCode = LTC2990_ERROR_NOT_READY; //No new value is available at this point
+        }
+        return 0;
+    }
+    if(l_error != LTC2990_SUCCESS) {
+        _lastErrorCode = l_error;
+        return 0;
+    }
+    m &= 0x1F;
+    _lastErrorCode = LTC2990_SUCCESS;
+    return ((m<<8) + l) * LTC2990_TEMP_COEF;
+}
+
 uint32_t LTC2990_readV1() {
     return LTC2990_readVoltage(LTC2990_REGISTER_V1_M, false);
 }
